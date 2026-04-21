@@ -57,6 +57,25 @@
       font-weight: bold;
     }
 
+    /* 🔘 BUTTONS */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 10px;
+      background: #0f0f1a;
+    }
+
+    button.small {
+      padding: 6px 10px;
+      font-size: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #7b5cff;
+      color: white;
+      cursor: pointer;
+    }
+
+    /* 🤖 CHARACTER */
     .character {
       height: 140px;
       display: flex;
@@ -71,7 +90,6 @@
       border-radius: 50%;
       background: radial-gradient(circle, #7b5cff, #2b1b66);
       position: relative;
-      transition: 0.2s;
       animation: idleBreath 4s infinite ease-in-out;
     }
 
@@ -110,8 +128,15 @@
       width: 26px;
       height: 16px;
       border-radius: 50%;
+      animation: talk 0.15s infinite alternate;
     }
 
+    @keyframes talk {
+      from { transform: translateX(-50%) scaleY(0.6); }
+      to { transform: translateX(-50%) scaleY(1.2); }
+    }
+
+    /* 💬 CHAT */
     #chat {
       flex: 1;
       padding: 10px;
@@ -147,7 +172,7 @@
       color: white;
     }
 
-    button {
+    .send {
       margin-left: 5px;
       padding: 10px;
       border: none;
@@ -156,6 +181,12 @@
       color: white;
       cursor: pointer;
     }
+
+    /* 🎭 MOOD COLORS */
+    .happy { box-shadow: 0 0 25px gold; }
+    .calm { box-shadow: 0 0 25px #7b5cff; }
+    .angry { box-shadow: 0 0 25px red; }
+    .mystic { box-shadow: 0 0 25px cyan; }
   </style>
 </head>
 
@@ -167,8 +198,15 @@
 
   <div class="header">🔮 Astrology AI Assistant</div>
 
+  <!-- 🔘 CONTROLS -->
+  <div class="controls">
+    <button class="small" onclick="toggleVoice()">🔊 Voice</button>
+    <button class="small" onclick="toggleRead()">📢 Read Reply</button>
+  </div>
+
+  <!-- 🤖 ORB -->
   <div class="character">
-    <div class="orb">
+    <div class="orb" id="orb">
       <div class="eye left"></div>
       <div class="eye right"></div>
       <div class="mouth" id="mouth"></div>
@@ -179,7 +217,7 @@
 
   <div class="input-area">
     <input id="input" placeholder="Ask astrology question..." />
-    <button onclick="send()">Send</button>
+    <button class="send" onclick="send()">Send</button>
   </div>
 
 </div>
@@ -188,14 +226,61 @@
 
 const chat = document.getElementById("chat");
 const mouth = document.getElementById("mouth");
+const orb = document.getElementById("orb");
 
-/* 💬 add message */
+let voiceOn = false;
+let readOn = false;
+
+/* 🔊 TOGGLE READ */
+function toggleRead() {
+  readOn = !readOn;
+  alert("Read AI: " + (readOn ? "ON" : "OFF"));
+}
+
+/* 🔊 VOICE */
+function speak(text) {
+  if (!readOn) return;
+
+  const utter = new SpeechSynthesisUtterance(text);
+
+  utter.onstart = () => mouth.classList.add("talking");
+  utter.onend = () => mouth.classList.remove("talking");
+
+  window.speechSynthesis.speak(utter);
+}
+
+/* 💬 MESSAGE */
 function add(text, type) {
   let div = document.createElement("div");
   div.className = "msg " + type;
   div.textContent = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
+
+  if (type === "bot") {
+    setMood(text);
+    speak(text);
+  }
+}
+
+/* 🎭 MOOD SYSTEM */
+function setMood(text) {
+  orb.classList.remove("happy", "calm", "angry", "mystic");
+
+  text = text.toLowerCase();
+
+  if (text.includes("love") || text.includes("good")) {
+    orb.classList.add("happy");
+  } 
+  else if (text.includes("warning") || text.includes("bad")) {
+    orb.classList.add("angry");
+  } 
+  else if (text.includes("future") || text.includes("destiny")) {
+    orb.classList.add("mystic");
+  } 
+  else {
+    orb.classList.add("calm");
+  }
 }
 
 /* ⏳ typing */
@@ -207,7 +292,7 @@ function typing() {
   return div;
 }
 
-/* 🚀 send message */
+/* 🚀 SEND */
 async function send() {
   let input = document.getElementById("input");
   let text = input.value.trim();
@@ -236,7 +321,7 @@ async function send() {
   }
 }
 
-/* stars */
+/* 🌌 STARS */
 function createStars() {
   const stars = document.getElementById("stars");
 
