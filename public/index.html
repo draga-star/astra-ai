@@ -57,7 +57,6 @@
       font-weight: bold;
     }
 
-    /* 🔘 BUTTONS */
     .controls {
       display: flex;
       justify-content: space-between;
@@ -75,7 +74,6 @@
       cursor: pointer;
     }
 
-    /* 🤖 CHARACTER */
     .character {
       height: 140px;
       display: flex;
@@ -91,12 +89,18 @@
       background: radial-gradient(circle, #7b5cff, #2b1b66);
       position: relative;
       animation: idleBreath 4s infinite ease-in-out;
+      transition: 0.2s;
     }
 
     @keyframes idleBreath {
       0% { transform: scale(1); box-shadow: 0 0 15px #7b5cff; }
       50% { transform: scale(1.05); box-shadow: 0 0 25px #7b5cff; }
       100% { transform: scale(1); box-shadow: 0 0 15px #7b5cff; }
+    }
+
+    .orb.talking {
+      box-shadow: 0 0 40px #7b5cff, 0 0 80px #7b5cff;
+      transform: scale(1.1);
     }
 
     .eye {
@@ -121,22 +125,18 @@
       height: 6px;
       background: white;
       border-radius: 10px;
-      transition: 0.1s;
     }
 
     .mouth.talking {
-      width: 26px;
-      height: 16px;
-      border-radius: 50%;
-      animation: talk 0.15s infinite alternate;
+      animation: talk 0.12s infinite alternate;
     }
 
     @keyframes talk {
-      from { transform: translateX(-50%) scaleY(0.6); }
-      to { transform: translateX(-50%) scaleY(1.2); }
+      0% { transform: translateX(-50%) scaleY(0.5); }
+      50% { transform: translateX(-50%) scaleY(1.4); }
+      100% { transform: translateX(-50%) scaleY(0.7); }
     }
 
-    /* 💬 CHAT */
     #chat {
       flex: 1;
       padding: 10px;
@@ -182,7 +182,6 @@
       cursor: pointer;
     }
 
-    /* 🎭 MOOD COLORS */
     .happy { box-shadow: 0 0 25px gold; }
     .calm { box-shadow: 0 0 25px #7b5cff; }
     .angry { box-shadow: 0 0 25px red; }
@@ -198,13 +197,11 @@
 
   <div class="header">🔮 Astrology AI Assistant</div>
 
-  <!-- 🔘 CONTROLS -->
   <div class="controls">
     <button class="small" onclick="toggleVoice()">🔊 Voice</button>
     <button class="small" onclick="toggleRead()">📢 Read Reply</button>
   </div>
 
-  <!-- 🤖 ORB -->
   <div class="character">
     <div class="orb" id="orb">
       <div class="eye left"></div>
@@ -223,7 +220,6 @@
 </div>
 
 <script>
-
 const chat = document.getElementById("chat");
 const mouth = document.getElementById("mouth");
 const orb = document.getElementById("orb");
@@ -231,25 +227,43 @@ const orb = document.getElementById("orb");
 let voiceOn = false;
 let readOn = false;
 
-/* 🔊 TOGGLE READ */
+/* TOGGLES */
+function toggleVoice() {
+  voiceOn = !voiceOn;
+  alert("Voice system: " + (voiceOn ? "ON" : "OFF"));
+}
+
 function toggleRead() {
   readOn = !readOn;
   alert("Read AI: " + (readOn ? "ON" : "OFF"));
 }
 
-/* 🔊 VOICE */
+/* SPEECH */
 function speak(text) {
-  if (!readOn) return;
+  if (!readOn || !voiceOn) return;
 
   const utter = new SpeechSynthesisUtterance(text);
 
-  utter.onstart = () => mouth.classList.add("talking");
-  utter.onend = () => mouth.classList.remove("talking");
+  utter.rate = 0.95;
+  utter.pitch = 1.2;
 
-  window.speechSynthesis.speak(utter);
+  const voices = speechSynthesis.getVoices();
+  utter.voice = voices.find(v => v.name.includes("Google")) || voices[0];
+
+  utter.onstart = () => {
+    mouth.classList.add("talking");
+    orb.classList.add("talking");
+  };
+
+  utter.onend = () => {
+    mouth.classList.remove("talking");
+    orb.classList.remove("talking");
+  };
+
+  speechSynthesis.speak(utter);
 }
 
-/* 💬 MESSAGE */
+/* CHAT */
 function add(text, type) {
   let div = document.createElement("div");
   div.className = "msg " + type;
@@ -263,19 +277,19 @@ function add(text, type) {
   }
 }
 
-/* 🎭 MOOD SYSTEM */
+/* MOOD */
 function setMood(text) {
   orb.classList.remove("happy", "calm", "angry", "mystic");
 
   text = text.toLowerCase();
 
-  if (text.includes("love") || text.includes("good")) {
+  if (text.match(/love|great|amazing|good|success/)) {
     orb.classList.add("happy");
   } 
-  else if (text.includes("warning") || text.includes("bad")) {
+  else if (text.match(/danger|bad|warning|risk|problem/)) {
     orb.classList.add("angry");
   } 
-  else if (text.includes("future") || text.includes("destiny")) {
+  else if (text.match(/future|destiny|stars|universe|energy/)) {
     orb.classList.add("mystic");
   } 
   else {
@@ -283,7 +297,7 @@ function setMood(text) {
   }
 }
 
-/* ⏳ typing */
+/* TYPING */
 function typing() {
   let div = document.createElement("div");
   div.className = "msg bot";
@@ -292,7 +306,7 @@ function typing() {
   return div;
 }
 
-/* 🚀 SEND */
+/* SEND */
 async function send() {
   let input = document.getElementById("input");
   let text = input.value.trim();
@@ -306,7 +320,7 @@ async function send() {
   try {
     const res = await fetch("/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ message: text })
     });
 
@@ -315,13 +329,13 @@ async function send() {
     loader.remove();
     add(data.reply, "bot");
 
-  } catch (err) {
+  } catch {
     loader.remove();
     add("❌ Server error", "bot");
   }
 }
 
-/* 🌌 STARS */
+/* STARS */
 function createStars() {
   const stars = document.getElementById("stars");
 
@@ -336,10 +350,13 @@ function createStars() {
 }
 createStars();
 
+/* ENTER KEY */
 document.getElementById("input").addEventListener("keydown", e => {
   if (e.key === "Enter") send();
 });
 
+/* AUTO FOCUS */
+document.getElementById("input").focus();
 </script>
 
 </body>
